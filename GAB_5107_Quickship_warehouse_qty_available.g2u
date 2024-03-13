@@ -1,0 +1,250 @@
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'PULLS IN CALCULATED AVAILABLE QUANTITIES FOR ROADMASTER TO GAB CUSTOM TEXT BOXES ON SHORT ORDER ENTRY LINES SCREEN
+'ONCE A PART HAS BEEN SELECTED.
+'PUTS A LABEL ABOVE THE TEXT BOX TITLED "Quick Ship Available" AND "Bulk Available"
+'CODED BY: BRADY STEVENS
+'CUSTOMER: ROADMASTER
+'DATE: 05/16/18
+'12440 Short order entry lines populate
+'12455 LOAD part hook
+'12620 SCRIPT 1 hook
+'12530 CLEAR BUTTON HOOK
+'12511 POST SAVE HOOK
+'12521 POST DELETE HOOK
+'14045 S&D populate hook
+'14050 S&D data load hook
+
+'short order lines  
+'GAB-LBL-1
+'GAB-LBL-2
+'GAB-TEXT-1
+'GAB-TEXT-2
+'PART - 000071
+'PART-REV - 000072
+'LOCATION - 000074
+
+'S&D screen
+'GAB-LBL-1
+'GAB-LBL-2
+'GAB-TEXT-1
+'GAB-TEXT-2
+'PART - 000003
+'PART-REV - 000099
+'LOCATION - 000004
+
+V.Local.SPART.Declare
+v.Local.SPARTLOC.Declare
+V.Local.SREV.Declare
+V.Local.SPARTWREV.Declare
+V.Local.SRET.Declare
+V.Local.SSQL.Declare
+v.Local.sQSReqQty.Declare(FLOAT)
+v.Local.sStagedQty.Declare(FLOAT)
+
+'Function.Intrinsic.Debug.InvokeDebugger
+'Function.Intrinsic.Debug.Stop
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+'populate hook
+F.Intrinsic.Control.Case(12440)
+
+	v.Passed.000162.Set("Refresh Avail")
+
+	V.Passed.GAB-LBL-1.Set("Quick Ship Available")
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-1,"HIDE",0)
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"HIDE",0)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-1","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PT",75)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-1","PW",100)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PH",15)	
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PT",91)
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PW",100)
+		
+	V.Passed.GAB-LBL-2.Set("Bulk Available")
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-2,"HIDE",0)
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-2,"HIDE",0)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-2","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PT",111)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-2","PW",100)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PH",15)
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PT",127)
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PW",100)
+	
+F.Intrinsic.Control.End
+'populate hook (S&D screen)
+F.Intrinsic.Control.Case(14045)
+
+	'v.Passed.000162.Set("Refresh Avail")
+
+	V.Passed.GAB-LBL-1.Set("Quick Ship Available")
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-1,"HIDE",0)
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"HIDE",0)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-1","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PT",167)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-1","PW",150)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PH",15)	
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PT",183)
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PW",100)
+		
+	V.Passed.GAB-LBL-2.Set("Bulk Available")
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-2,"HIDE",0)
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-2,"HIDE",0)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-2","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PT",203)
+	f.Intrinsic.Variable.SetProperty("GAB-LBL-2","PW",150)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PH",15)
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PL",855)
+	F.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PT",219)
+	f.Intrinsic.Variable.SetProperty("GAB-TEXT-2","PW",100)
+	
+F.Intrinsic.Control.End
+
+'load part hook (short order lines)	
+F.Intrinsic.Control.Case(12455)
+	V.Local.SPART.Set(V.Passed.000071)
+	V.Local.SREV.Set(V.Passed.000072)
+	V.Local.SPARTLOC.Set(V.Passed.000074)
+	F.Intrinsic.String.RPad(V.Local.SPART," ",17,V.Local.SPART)
+	F.Intrinsic.String.Concat(V.Local.SPART,V.Local.SREV,V.Local.SPARTWREV)
+	'RETREIVE WH1 (BULK AVAILABLE)
+	F.Intrinsic.String.Build("SELECT (QTY_ONHAND-QTY_REQUIRED-QTY_SAFETY) AS WH1 FROM V_INVENTORY_ALL WHERE PART = '{0}' AND LOCATION = '{1}';",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.PASSED.GAB-TEXT-2.Set(V.Local.SRET(0))	
+	
+	'RETREIVE WH3 (QUICK SHIP AVAILABLE)
+	'get STAGED QTY
+	F.Intrinsic.String.Build("SELECT SUM(QUANTITY) AS STAGEDQTY FROM V_ITEM_MASTER WHERE ALLOC_TYPE = 'T' AND PART = '{0}' AND LOCATION = '{1}' GROUP BY PART,LOCATION;",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.Local.sStagedQty.Set(V.Local.SRET(0))
+	'get QUICK SHIP REQUIRED QTY
+	F.Intrinsic.String.Build("select L.PART, L.LOCATION,MAX(H.USER_1) AS QS, SUM(L.QTY_BO) AS QSREQQTY from V_ORDER_LINES L,V_ORDER_HEADER H WHERE L.ORDER_NO=H.ORDER_NO AND L.PART = '{0}' AND L.LOCATION= '{1}' AND H.USER_1='YES' GROUP BY L.PART,L.LOCATION;",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.Local.sQSReqQty.Set(V.Local.SRET(3))
+	
+	'SET QS AVAILABLE
+	F.Intrinsic.String.Build("SELECT (QTY_ONHAND-{2}-{3}) AS WH1 FROM V_INVENTORY_ALL WHERE PART = '{0}' AND LOCATION = '{1}';",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.sQSReqQty,V.Local.sStagedQty,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.PASSED.GAB-TEXT-1.Set(V.Local.SRET(0))
+F.Intrinsic.Control.End
+
+'load data hook (S&D screen)	
+F.Intrinsic.Control.Case(14050)
+	V.Local.SPART.Set(V.Passed.000003)
+	V.Local.SREV.Set(V.Passed.000099)
+	V.Local.SPARTLOC.Set(V.Passed.000004)
+	F.Intrinsic.String.RPad(V.Local.SPART," ",17,V.Local.SPART)
+	F.Intrinsic.String.Concat(V.Local.SPART,V.Local.SREV,V.Local.SPARTWREV)
+	'RETREIVE WH1 (BULK AVAILABLE)
+	F.Intrinsic.String.Build("SELECT (QTY_ONHAND-QTY_REQUIRED-QTY_SAFETY) AS WH1 FROM V_INVENTORY_ALL WHERE PART = '{0}' AND LOCATION = '{1}';",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.PASSED.GAB-TEXT-2.Set(V.Local.SRET(0))	
+	
+	'RETREIVE WH3 (QUICK SHIP AVAILABLE)
+	'get STAGED QTY
+	F.Intrinsic.String.Build("SELECT SUM(QUANTITY) AS STAGEDQTY FROM V_ITEM_MASTER WHERE ALLOC_TYPE = 'T' AND PART = '{0}' AND LOCATION = '{1}' GROUP BY PART,LOCATION;",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.Local.sStagedQty.Set(V.Local.SRET(0))
+	'get QUICK SHIP REQUIRED QTY
+	F.Intrinsic.String.Build("select L.PART, L.LOCATION,MAX(H.USER_1) AS QS, SUM(L.QTY_BO) AS QSREQQTY from V_ORDER_LINES L,V_ORDER_HEADER H WHERE L.ORDER_NO=H.ORDER_NO AND L.PART = '{0}' AND L.LOCATION= '{1}' AND H.USER_1='YES' GROUP BY L.PART,L.LOCATION;",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.Local.sQSReqQty.Set(V.Local.SRET(3))
+	
+	'SET QS AVAILABLE
+	F.Intrinsic.String.Build("SELECT (QTY_ONHAND-{2}-{3}) AS WH1 FROM V_INVENTORY_ALL WHERE PART = '{0}' AND LOCATION = '{1}';",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.sQSReqQty,V.Local.sStagedQty,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.PASSED.GAB-TEXT-1.Set(V.Local.SRET(0))
+F.Intrinsic.Control.End
+
+'script 1 button to refresh available
+F.Intrinsic.Control.Case(12620)
+	V.Local.SPART.Set(V.Passed.000071)
+	V.Local.SREV.Set(V.Passed.000072)
+	V.Local.SPARTLOC.Set(V.Passed.000074)
+	F.Intrinsic.String.RPad(V.Local.SPART," ",17,V.Local.SPART)
+	F.Intrinsic.String.Concat(V.Local.SPART,V.Local.SREV,V.Local.SPARTWREV)
+	f.Intrinsic.Control.If(v.Local.SPARTWREV,<>,"")
+	'RETREIVE WH1 (BULK AVAILABLE)
+	F.Intrinsic.String.Build("SELECT (QTY_ONHAND-QTY_REQUIRED-QTY_SAFETY) AS WH1 FROM V_INVENTORY_ALL WHERE PART = '{0}' AND LOCATION = '{1}';",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.PASSED.GAB-TEXT-2.Set(V.Local.SRET(0))	
+	
+	'RETREIVE WH3 (QUICK SHIP AVAILABLE)
+	'get STAGED QTY
+	F.Intrinsic.String.Build("SELECT SUM(QUANTITY) AS STAGEDQTY FROM V_ITEM_MASTER WHERE ALLOC_TYPE = 'T' AND PART = '{0}' AND LOCATION = '{1}' GROUP BY PART,LOCATION;",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.Local.sStagedQty.Set(V.Local.SRET(0))
+	'get QUICK SHIP REQUIRED QTY
+	F.Intrinsic.String.Build("select L.PART, L.LOCATION,MAX(H.USER_1) AS QS, SUM(L.QTY_BO) AS QSREQQTY from V_ORDER_LINES L,V_ORDER_HEADER H WHERE L.ORDER_NO=H.ORDER_NO AND L.PART = '{0}' AND L.LOCATION= '{1}' AND H.USER_1='YES' GROUP BY L.PART,L.LOCATION;",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.Local.sQSReqQty.Set(V.Local.SRET(3))
+	
+	'SET QS AVAILABLE
+	F.Intrinsic.String.Build("SELECT (QTY_ONHAND-{2}-{3}) AS WH1 FROM V_INVENTORY_ALL WHERE PART = '{0}' AND LOCATION = '{1}';",V.Local.SPARTWREV,V.Local.SPARTLOC,V.Local.sQSReqQty,V.Local.sStagedQty,V.Local.SSQL)
+	F.ODBC.Connection!CONX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.ODBC.Connection!CONX.ExecuteAndReturn(V.Local.SSQL,V.Local.SRET)
+	F.Intrinsic.String.Split(V.Local.SRET,"*!*",V.Local.SRET)
+	F.ODBC.Connection!CONX.Close
+	V.PASSED.GAB-TEXT-1.Set(V.Local.SRET(0))
+	f.Intrinsic.Control.EndIf
+F.Intrinsic.Control.End
+'clear hook
+F.Intrinsic.Control.Case(12530)
+	V.Passed.GAB-TEXT-1.Set("")
+	V.Passed.GAB-TEXT-2.Set("")
+'post save hook
+F.Intrinsic.Control.Case(12511)
+	V.Passed.GAB-TEXT-1.Set("")
+	V.Passed.GAB-TEXT-2.Set("")
+F.Intrinsic.Control.End	
+'post delete hook
+F.Intrinsic.Control.Case(12521)
+	V.Passed.GAB-TEXT-1.Set("")
+	V.Passed.GAB-TEXT-2.Set("")
+F.Intrinsic.Control.End	
+F.Intrinsic.Control.EndSelect
+
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$Trent Maynard$}$5/16/2017 8:36:20 AM$}$True
+Program.Sub.Comments.End
